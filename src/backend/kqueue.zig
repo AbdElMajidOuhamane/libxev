@@ -1247,8 +1247,8 @@ pub const Completion = struct {
                         const ev = ev_ orelse
                             break :res .{ .read = error.MissingKevent };
                         break :empty @intCast(ev.data);
-                    } else xev_posix.recvfrom(op.fd, v, 0, &op.addr, &op.addr_size) catch |err| mapReadError(err),
-                    .array => |*v| xev_posix.recvfrom(op.fd, v, 0, &op.addr, &op.addr_size) catch |err| mapReadError(err),
+                    } else xev_posix.recvfrom(op.fd, v, 0, @ptrCast(&op.addr), &op.addr_size) catch |err| mapReadError(err),
+                    .array => |*v| xev_posix.recvfrom(op.fd, v, 0, @ptrCast(&op.addr), &op.addr_size) catch |err| mapReadError(err),
                 };
 
                 break :res .{
@@ -1652,8 +1652,8 @@ pub const Operation = union(OperationType) {
     recvfrom: struct {
         fd: posix.fd_t,
         buffer: ReadBuffer,
-        addr: posix.sockaddr = undefined,
-        addr_size: posix.socklen_t = @sizeOf(posix.sockaddr),
+        addr: posix.sockaddr.in6 = undefined,
+        addr_size: posix.socklen_t = @sizeOf(posix.sockaddr.in6),
     },
 
     close: struct {

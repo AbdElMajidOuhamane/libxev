@@ -134,7 +134,7 @@ fn UDPSendto(comptime xev: type) type {
                                     l_inner,
                                     c_inner,
                                     s_inner,
-                                    net.Address.initPosix(@alignCast(&c_inner.op.recvfrom.addr)).toIpAddress(),
+                                    net.Address.initPosix(@ptrCast(@alignCast(&c_inner.op.recvfrom.addr))).toIpAddress(),
                                     initFd(c_inner.op.recvfrom.fd),
                                     c_inner.op.recvfrom.buffer,
                                     r.recvfrom,
