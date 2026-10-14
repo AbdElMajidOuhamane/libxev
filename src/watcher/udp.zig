@@ -129,12 +129,16 @@ fn UDPSendto(comptime xev: type) type {
                                 r: xev.Result,
                             ) xev.CallbackAction {
                                 const s_inner = @as(?*State, @ptrCast(@alignCast(ud))).?;
+                                const addr: std.Io.net.IpAddress = if (r.recvfrom) |_|
+                                    net.Address.initPosix(@ptrCast(@alignCast(&c_inner.op.recvfrom.addr))).toIpAddress()
+                                else |_|
+                                    .{ .ip4 = .{ .bytes = .{ 0, 0, 0, 0 }, .port = 0 } };
                                 return @call(.always_inline, cb, .{
                                     common.userdataValue(Userdata, s_inner.userdata),
                                     l_inner,
                                     c_inner,
                                     s_inner,
-                                    net.Address.initPosix(@ptrCast(@alignCast(&c_inner.op.recvfrom.addr))).toIpAddress(),
+                                    addr,
                                     initFd(c_inner.op.recvfrom.fd),
                                     c_inner.op.recvfrom.buffer,
                                     r.recvfrom,
@@ -310,12 +314,16 @@ fn UDPSendtoIOCP(comptime xev: type) type {
                                 r: xev.Result,
                             ) xev.CallbackAction {
                                 const s_inner: *State = @ptrCast(@alignCast(ud.?));
+                                const addr: std.Io.net.IpAddress = if (r.recvfrom) |_|
+                                    net.Address.initPosix(@alignCast(&c_inner.op.recvfrom.addr)).toIpAddress()
+                                else |_|
+                                    .{ .ip4 = .{ .bytes = .{ 0, 0, 0, 0 }, .port = 0 } };
                                 return @call(.always_inline, cb, .{
                                     common.userdataValue(Userdata, s_inner.userdata),
                                     l_inner,
                                     c_inner,
                                     s_inner,
-                                    net.Address.initPosix(@alignCast(&c_inner.op.recvfrom.addr)).toIpAddress(),
+                                    addr,
                                     initFd(c_inner.op.recvfrom.fd),
                                     c_inner.op.recvfrom.buffer,
                                     r.recvfrom,
@@ -547,12 +555,19 @@ fn UDPSendMsg(comptime xev: type) type {
                         r: xev.Result,
                     ) xev.CallbackAction {
                         const s_inner = @as(?*State, @ptrCast(@alignCast(ud))).?;
+                        // On failed/cancelled recvmsg the kernel never fills addr_buffer;
+                        // converting it would hit toIpAddress's `unreachable` in safety builds.
+                        // The callback only reads addr on success, so a defined fallback is fine.
+                        const addr: std.Io.net.IpAddress = if (r.recvmsg) |_|
+                            net.Address.initPosix(@ptrCast(&s_inner.op.recv.addr_buffer)).toIpAddress()
+                        else |_|
+                            .{ .ip4 = .{ .bytes = .{ 0, 0, 0, 0 }, .port = 0 } };
                         return @call(.always_inline, cb, .{
                             common.userdataValue(Userdata, s_inner.userdata),
                             l_inner,
                             c_inner,
                             s_inner,
-                            net.Address.initPosix(@ptrCast(&s_inner.op.recv.addr_buffer)).toIpAddress(),
+                            addr,
                             initFd(c_inner.op.recvmsg.fd),
                             s_inner.op.recv.buf,
                             if (r.recvmsg) |v| v else |err| err,
